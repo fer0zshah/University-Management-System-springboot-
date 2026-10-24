@@ -24,6 +24,7 @@ public class SecurityConfig {
         http
                 .csrf(csrf -> csrf.disable()) // REST API tested with .http/Postman, no browser forms
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/", "/index.html", "/style.css", "/app.js", "/favicon.ico").permitAll()
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/api/admins/**").hasRole("ADMIN")
                         .requestMatchers("/api/teachers/**").hasAnyRole("ADMIN", "TEACHER")
