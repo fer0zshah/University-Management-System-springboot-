@@ -1,0 +1,143 @@
+### Create an admin
+POST http://localhost:8081/api/admins
+Content-Type: application/json
+
+{
+  "username": "admin1",
+  "password": "admin123",
+  "fullName": "Feroz Admin",
+  "email": "admin1@kuet.ac.bd",
+  "office": "Registrar Office"
+}
+
+### Get all admins
+GET http://localhost:8081/api/admins
+
+### Get one admin
+GET http://localhost:8081/api/admins/1
+
+### Update admin
+PUT http://localhost:8081/api/admins/1
+Content-Type: application/json
+
+{
+  "username": "admin1",
+  "fullName": "Feroz Admin Updated",
+  "email": "admin1@kuet.ac.bd",
+  "office": "Dean Office"
+}
+
+### Delete admin
+DELETE http://localhost:8081/api/admins/1
+
+### Create teacher
+POST http://localhost:8081/api/teachers
+Content-Type: application/json
+
+{
+  "username": "teacher1",
+  "password": "teach123",
+  "fullName": "Dr. Rahman",
+  "email": "teacher1@kuet.ac.bd",
+  "department": "CSE",
+  "designation": "Professor"
+}
+
+### Get all teachers
+GET http://localhost:8081/api/teachers
+
+### Create student
+POST http://localhost:8081/api/students
+Content-Type: application/json
+
+{
+  "username": "student1",
+  "password": "stud123",
+  "fullName": "Feroz",
+  "email": "student1@kuet.ac.bd",
+  "rollNumber": "2207087",
+  "department": "CSE"
+}
+
+### Get all students
+GET http://localhost:8081/api/students
+
+### Duplicate roll number (expect 409)
+POST http://localhost:8081/api/students
+Content-Type: application/json
+
+{
+  "username": "student2",
+  "password": "stud123",
+  "fullName": "Another",
+  "email": "student2@kuet.ac.bd",
+  "rollNumber": "2207087",
+  "department": "CSE"
+}
+
+
+
+
+
+### 1. No login: expect 401
+GET http://localhost:8081/api/teachers
+
+### 2. Wrong password: expect 401
+POST http://localhost:8081/api/auth/login
+Content-Type: application/x-www-form-urlencoded
+
+username=admin&password=wrong
+
+### 3. Login as ADMIN: expect 200
+POST http://localhost:8081/api/auth/login
+Content-Type: application/x-www-form-urlencoded
+
+username=admin&password=admin123
+
+### 4. Admin can access all three: expect 200 each
+GET http://localhost:8081/api/admins
+
+###
+GET http://localhost:8081/api/teachers
+
+###
+GET http://localhost:8081/api/students
+
+### 5. Logout: expect 200
+POST http://localhost:8081/api/auth/logout
+
+### 6. After logout: expect 401
+GET http://localhost:8081/api/admins
+
+### 7. Login as TEACHER
+POST http://localhost:8081/api/auth/login
+Content-Type: application/x-www-form-urlencoded
+
+username=teacher1&password=teach123
+
+### Teacher on teachers: expect 200
+GET http://localhost:8081/api/teachers
+
+### Teacher on students: expect 403
+GET http://localhost:8081/api/students
+
+### Teacher on admins: expect 403
+GET http://localhost:8081/api/admins
+
+### 8. Logout, then login as STUDENT
+POST http://localhost:8081/api/auth/logout
+
+###
+POST http://localhost:8081/api/auth/login
+Content-Type: application/x-www-form-urlencoded
+
+username=student1&password=stud123
+
+### Student on students: expect 200
+GET http://localhost:8081/api/students
+
+### Student on teachers: expect 403
+GET http://localhost:8081/api/teachers
+
+### Student on admins: expect 403
+GET http://localhost:8081/api/admins
