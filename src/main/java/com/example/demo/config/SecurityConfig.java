@@ -2,6 +2,7 @@ package com.example.demo.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -27,6 +28,10 @@ public class SecurityConfig {
                         .requestMatchers("/", "/index.html", "/style.css", "/app.js", "/favicon.ico").permitAll()
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/api/admins/**").hasRole("ADMIN")
+                        // Creating teacher and student accounts is an admin-only operation.
+                        // These method-specific rules must come before the broader path rules.
+                        .requestMatchers(HttpMethod.POST, "/api/teachers", "/api/teachers/").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/students", "/api/students/").hasRole("ADMIN")
                         .requestMatchers("/api/teachers/**").hasAnyRole("ADMIN", "TEACHER")
                         .requestMatchers("/api/students/**").hasAnyRole("ADMIN", "STUDENT")
                         .anyRequest().authenticated()
