@@ -1,0 +1,109 @@
+# GitHub Actions-এর তালিকায় এই workflow যে নামে দেখা যাবে তা নির্ধারণ করা হচ্ছে।
+name: University Management CI
+
+# কোন কোন ঘটনার পরে workflow চালু হবে তা এখানে নির্ধারণ করা হচ্ছে।
+on:
+  # Actions tab থেকে প্রয়োজন হলে workflow-টি manually চালানোর সুযোগ দেওয়া হচ্ছে।
+  workflow_dispatch:
+  # repository-তে code push করা হলে workflow চালানো হবে।
+  push:
+    # শুধু main অথবা master branch-এ push হলে workflow চলবে।
+    branches: [main, master]
+  # main অথবা master branch লক্ষ্য করে pull request তৈরি বা update হলেও workflow চলবে।
+  pull_request:
+    # যে target branch-গুলোর pull request পরীক্ষা করা হবে সেগুলো নির্ধারণ করা হচ্ছে।
+    branches: [main, master]
+
+# workflow-কে repository-তে কী permission দেওয়া হবে তা নির্ধারণ করা হচ্ছে।
+permissions:
+  # source code checkout করার জন্য শুধু read permission দেওয়া হচ্ছে।
+  contents: read
+
+# workflow-এর সব job এই অংশের নিচে লেখা হচ্ছে।
+jobs:
+  # test নামের job-টি unit এবং integration test চালাবে।
+  test:
+    # GitHub Actions UI-তে job-টির প্রদর্শিত নাম নির্ধারণ করা হচ্ছে।
+    name: Run unit and integration tests
+    # job-টি GitHub-এর সর্বশেষ Ubuntu virtual machine-এ চলবে।
+    runs-on: ubuntu-latest
+
+    # integration test-এর জন্য job-এর পাশে PostgreSQL service container চালানো হচ্ছে।
+    services:
+      # service container-টির নাম postgres রাখা হচ্ছে।
+      postgres:
+        # হালকা Alpine Linux-ভিত্তিক PostgreSQL 17 image ব্যবহার করা হচ্ছে।
+        image: postgres:17-alpine
+        # PostgreSQL container তৈরির সময় database credentials দেওয়া হচ্ছে।
+        env:
+          # integration test-এর জন্য আলাদা database তৈরি করা হচ্ছে।
+          POSTGRES_DB: university_test
+          # শুধু CI test-এ ব্যবহৃত database username নির্ধারণ করা হচ্ছে।
+          POSTGRES_USER: postgres
+          # শুধু CI test-এ ব্যবহৃত database password নির্ধারণ করা হচ্ছে।
+          POSTGRES_PASSWORD: postgres
+        # container-এর PostgreSQL port GitHub runner-এর একই port-এ প্রকাশ করা হচ্ছে।
+        ports:
+          - 5432:5432
+        # database প্রস্তুত না হওয়া পর্যন্ত test শুরু ঠেকাতে health check যোগ করা হচ্ছে।
+        options: >-
+          --health-cmd "pg_isready -U postgres -d university_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    # Spring Boot test application-কে CI PostgreSQL database-এর সঙ্গে যুক্ত করা হচ্ছে।
+    env:
+      # application-test.properties-এর local H2 URL-কে CI run-এর জন্য override করা হচ্ছে।
+      SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/university_test
+      # PostgreSQL service-এর test username Spring Boot-কে দেওয়া হচ্ছে।
+      SPRING_DATASOURCE_USERNAME: postgres
+      # PostgreSQL service-এর test password Spring Boot-কে দেওয়া হচ্ছে।
+      SPRING_DATASOURCE_PASSWORD: postgres
+      # প্রতিটি CI run-এ clean schema তৈরি এবং test শেষে মুছে ফেলা হবে।
+      SPRING_JPA_HIBERNATE_DDL_AUTO: create-drop
+
+    # test job যে ধাপগুলো ধারাবাহিকভাবে চালাবে সেগুলো এখানে শুরু হচ্ছে।
+    steps:
+      # প্রথমে repository-এর source code runner machine-এ আনা হচ্ছে।
+      - name: Checkout repository
+        # GitHub-এর official checkout action-এর version 4 ব্যবহার করা হচ্ছে।
+        uses: actions/checkout@v4
+
+      # project compile এবং test করার জন্য Java 25 প্রস্তুত করা হচ্ছে।
+      - name: Set up Java 25
+        # GitHub-এর official Java setup action-এর version 4 ব্যবহার করা হচ্ছে।
+        uses: actions/setup-java@v4
+        # Java setup action-এর configuration নিচে দেওয়া হচ্ছে।
+        with:
+          # Eclipse Temurin-এর OpenJDK distribution ব্যবহার করা হচ্ছে।
+          distribution: temurin
+          # project-এর Gradle toolchain-এর সঙ্গে মিল রেখে Java version 25 ব্যবহার করা হচ্ছে।
+          java-version: '25'
+          # পরবর্তী workflow run দ্রুত করার জন্য Gradle dependencies cache করা হচ্ছে।
+          cache: gradle
+
+      # Linux runner-এ Gradle wrapper চালানোর permission দেওয়া হচ্ছে।
+      - name: Make Gradle wrapper executable
+        # gradlew file-টিকে executable করার Linux command চালানো হচ্ছে।
+        run: chmod +x gradlew
+
+      # project-এর ৬টি unit test এবং ৩টি integration test চালানো হচ্ছে।
+      - name: Run all tests
+        # পুরোনো build মুছে clean অবস্থায় test চালানো হচ্ছে এবং স্থায়ী daemon বন্ধ রাখা হচ্ছে।
+        run: ./gradlew clean test --no-daemon
+
+      # test শেষ হওয়ার পরে HTML report artifact হিসেবে সংরক্ষণ করা হচ্ছে।
+      - name: Upload test report
+        # test ব্যর্থ হলেও report upload করার এই step সবসময় চালানো হবে।
+        if: always()
+        # GitHub-এর official artifact upload action-এর version 4 ব্যবহার করা হচ্ছে।
+        uses: actions/upload-artifact@v4
+        # upload করা artifact-এর configuration নিচে দেওয়া হচ্ছে।
+        with:
+          # GitHub Actions UI-তে artifact-টির নাম test-report হবে।
+          name: test-report
+          # Gradle যে directory-তে HTML test report তৈরি করে সেটি upload করা হচ্ছে।
+          path: build/reports/tests/test/
+          # report না পাওয়া গেলে workflow-কে fail না করে step-টি ignore করা হবে।
+          if-no-files-found: ignore
