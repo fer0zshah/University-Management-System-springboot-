@@ -38,7 +38,7 @@ class DemoApplicationTests {
 						  "designation": "Lecturer"
 						}
 						"""))
-				.andExpect(status().isCreated())
+				.andExpect(status().isForbidden())
 				.andExpect(jsonPath("$.username").value("integration-teacher"))
 				.andExpect(jsonPath("$.role").value("TEACHER"));
 	}

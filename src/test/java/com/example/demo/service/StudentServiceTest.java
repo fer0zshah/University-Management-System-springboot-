@@ -61,8 +61,8 @@ class StudentServiceTest {
     @Test
     void createStudentRejectsDuplicateRollNumber() {
         StudentRequest request = new StudentRequest(
-                "student2", "secret", "Student Two", "student2@kuet.ac.bd", "2107002", "CSE");
-        when(studentRepository.existsByRollNumber("2107002")).thenReturn(true);
+                "student2", "secret", "Student Two", "student2@kuet.ac.bd", "2207087", "CSE");
+        when(studentRepository.existsByRollNumber("2207087")).thenReturn(true);
 
         ResponseStatusException exception = assertThrows(
                 ResponseStatusException.class, () -> studentService.create(request));
